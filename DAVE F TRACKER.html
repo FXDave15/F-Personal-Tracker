@@ -1,0 +1,1315 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dave's Finance Tracker</title>
+<style>
+  :root{
+    --bg:#EFEDE6; --card:#FBFAF6; --card2:#E7E4DB; --line:#DCD8CD;
+    --text:#161513; --muted:#8D897E; --accent:#E8452E; --green:#1F9D55;
+    --red:#E8452E; --amber:#D97E0F; --purple:#3D5AF1; --teal:#4E7A76;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:"Helvetica Neue",-apple-system,BlinkMacSystemFont,"Inter","Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:1100px;margin:0 auto;padding:20px 16px 60px}
+  header{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:18px}
+  h1{font-size:1.5rem;font-weight:800;letter-spacing:-.02em}
+  h1 span{color:var(--accent)}
+  .month-nav{display:flex;align-items:center;gap:8px;background:var(--card);border:1px solid var(--line);border-radius:999px;padding:6px 12px}
+  .month-nav button{background:none;border:none;color:var(--accent);font-size:1.1rem;cursor:pointer;padding:2px 8px}
+  .month-nav b{min-width:130px;text-align:center;font-size:.95rem}
+  nav{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:22px}
+  nav button{flex:1;min-width:84px;display:flex;align-items:center;justify-content:center;gap:6px;background:var(--card);border:1px solid var(--line);color:var(--text);padding:11px 10px;border-radius:999px;cursor:pointer;font-size:.86rem;font-weight:700;transition:.15s}
+  nav button i{font-style:normal}
+  nav button.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+  @media(max-width:640px){
+    .wrap{padding-bottom:100px}
+    nav{position:fixed;left:12px;right:12px;bottom:12px;z-index:90;background:#141414;border-radius:999px;padding:7px;margin:0;box-shadow:0 12px 32px rgba(0,0,0,.35);flex-wrap:nowrap}
+    nav button{background:transparent;border:none;color:#9b9b9b;min-width:0;padding:8px 4px;flex-direction:column;gap:2px;font-size:.58rem;font-weight:600}
+    nav button i{font-size:1.1rem}
+    nav button.active{background:var(--accent);color:#fff}
+  }
+  .tab{display:none}.tab.active{display:block;animation:fade .2s}
+  @keyframes fade{from{opacity:0;transform:translateY(4px)}to{opacity:1}}
+  .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:18px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:15px 17px}
+  .card .lbl{font-size:.72rem;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;font-weight:600}
+  .card .val{font-size:1.15rem;font-weight:800;letter-spacing:-.01em}
+  .panel{background:var(--card);border:1px solid var(--line);border-radius:20px;padding:20px;margin-bottom:16px}
+  .panel h2{font-size:1rem;margin-bottom:14px;color:var(--text)}
+  .panel h2 small{color:var(--muted);font-weight:400;font-size:.8rem}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  @media(max-width:760px){.grid2{grid-template-columns:1fr}}
+  .bar-row{margin-bottom:12px}
+  .bar-top{display:flex;justify-content:space-between;font-size:.85rem;margin-bottom:4px}
+  .bar-top .amt{color:var(--muted)}
+  .bar{height:12px;background:var(--card2);border-radius:8px;overflow:hidden}
+  .bar i{display:block;height:100%;border-radius:8px;background:var(--text);transition:width .3s}
+  .bar i.warn{background:var(--amber)} .bar i.over{background:var(--red)}
+  .over-lbl{color:var(--red);font-weight:700}
+  form .row{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px}
+  label{display:block;font-size:.75rem;color:var(--muted);margin-bottom:4px}
+  input,select{background:#fff;border:1px solid var(--line);color:var(--text);border-radius:12px;padding:9px 12px;font-size:.9rem;width:100%}
+  input:focus,select:focus{outline:none;border-color:var(--accent)}
+  .f{flex:1;min-width:120px}
+  .btn{background:var(--accent);color:#fff;border:none;border-radius:999px;padding:10px 20px;font-weight:700;cursor:pointer;font-size:.88rem}
+  .btn.sec{background:var(--card);color:var(--text);border:1.5px solid var(--text)}
+  .btn.danger{background:transparent;color:var(--red);border:1px solid var(--red)}
+  .btn.sm{padding:5px 10px;font-size:.78rem}
+  table{width:100%;border-collapse:collapse;font-size:.87rem}
+  th{text-align:left;color:var(--muted);font-size:.72rem;text-transform:uppercase;letter-spacing:.05em;padding:8px 8px;border-bottom:1px solid var(--line)}
+  td{padding:9px 8px;border-bottom:1px solid var(--line)}
+  td.num,th.num{text-align:right;white-space:nowrap}
+  .pill{display:inline-block;padding:2px 9px;border-radius:20px;font-size:.72rem;font-weight:600}
+  .pill.income{background:rgba(62,207,142,.15);color:var(--green)}
+  .pill.expense{background:rgba(245,101,101,.15);color:var(--red)}
+  .pill.invest{background:rgba(159,122,234,.15);color:var(--purple)}
+  .del{background:none;border:none;color:var(--muted);cursor:pointer;font-size:1rem}
+  .del:hover{color:var(--red)}
+  .muted{color:var(--muted);font-size:.82rem}
+  .hint{font-size:.75rem;color:var(--muted);margin-top:4px}
+  .legend{display:flex;flex-wrap:wrap;gap:10px;margin-top:10px;font-size:.78rem}
+  .legend span{display:flex;align-items:center;gap:5px}
+  .dot{width:9px;height:9px;border-radius:50%;display:inline-block}
+  .alloc-row{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+  .alloc-row label{flex:1;margin:0;font-size:.85rem;color:var(--text)}
+  .alloc-row input[type=range]{flex:2;padding:0}
+  .alloc-row b{width:48px;text-align:right;font-size:.85rem}
+  .goal{margin-bottom:16px}
+  .big{font-size:1.5rem;font-weight:800}
+  .green{color:var(--green)}.red{color:var(--red)}.amber{color:var(--amber)}
+  .flexbtw{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px}
+  .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#141414;color:#fff;border:none;padding:12px 22px;border-radius:999px;font-size:.88rem;display:none;z-index:99;box-shadow:0 10px 28px rgba(0,0,0,.3)}
+  @media(max-width:640px){.toast{bottom:88px}}
+  .empty{text-align:center;color:var(--muted);padding:24px;font-size:.88rem}
+  svg text{fill:var(--muted);font-size:10px}
+  .chip{display:inline-flex;align-items:center;gap:7px;background:var(--card2);border:1px solid var(--line);border-radius:20px;padding:6px 13px;font-size:.82rem;cursor:pointer;transition:.15s}
+  .chip:hover{border-color:var(--accent)}
+  .chip .x{color:var(--muted);font-size:.9rem}
+  .chip .x:hover{color:var(--red)}
+  .hero{grid-column:1/-1;background:var(--card);border:1px solid var(--line);border-radius:22px;padding:22px 24px}
+  .hero-num{font-size:2.3rem;font-weight:800;letter-spacing:-.03em;margin:4px 0 10px}
+  @media(max-width:640px){.hero-num{font-size:1.9rem}}
+  .badge{display:inline-block;background:var(--accent);color:#fff;border-radius:999px;padding:4px 13px;font-size:.75rem;font-weight:700}
+  .badge.ok{background:var(--green)}
+  .ticon{width:36px;height:36px;border-radius:50%;background:#141414;display:inline-flex;align-items:center;justify-content:center;font-size:.95rem}
+  table tr:hover td{background:rgba(20,20,19,.035)}
+  .panel.dark{background:#141414;border-color:#141414;--muted:#9b9b9b;--green:#ffffff;--red:#E8452E;--purple:#8B93FF;--line:#2b2b2b}
+  .panel.dark h2{color:#fff}
+  .panel.dark .legend{color:#cfcfcf}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>💰 Dave's <span>Finance Tracker</span></h1>
+    <div style="display:flex;gap:8px;align-items:center">
+      <div class="month-nav">
+        <button onclick="shiftMonth(-1)">‹</button>
+        <b id="monthLabel"></b>
+        <button onclick="shiftMonth(1)">›</button>
+      </div>
+      <button class="btn sec" title="Lock app" onclick="lockNow()" style="padding:9px 12px">🔒</button>
+    </div>
+  </header>
+
+  <nav>
+    <button class="active" data-tab="dash" onclick="showTab('dash')"><i>🏠</i><span>Home</span></button>
+    <button data-tab="tx" onclick="showTab('tx')"><i>🧾</i><span>Log</span></button>
+    <button data-tab="budget" onclick="showTab('budget')"><i>💼</i><span>Budget</span></button>
+    <button data-tab="invest" onclick="showTab('invest')"><i>📈</i><span>Invest</span></button>
+    <button data-tab="goals" onclick="showTab('goals')"><i>🎯</i><span>Goals</span></button>
+    <button data-tab="year" onclick="showTab('year')"><i>📅</i><span>Year</span></button>
+  </nav>
+
+  <!-- DASHBOARD -->
+  <div class="tab active" id="tab-dash">
+    <div class="cards" id="dashCards"></div>
+    <div class="panel">
+      <h2>🧠 Weekly insights <small id="insightsWeek"></small></h2>
+      <div id="insights"></div>
+    </div>
+    <div class="grid2">
+      <div class="panel">
+        <h2>Savings-first progress <small>— pay yourself first</small></h2>
+        <div id="savingsFirst"></div>
+      </div>
+      <div class="panel">
+        <h2>Expense breakdown</h2>
+        <div id="donutWrap" style="display:flex;align-items:center;gap:18px;flex-wrap:wrap"></div>
+      </div>
+    </div>
+    <div class="panel">
+      <h2>Budget status <small>— this month</small></h2>
+      <div id="budgetBars"></div>
+    </div>
+    <div class="panel dark">
+      <h2>6-month trend <small>— income vs expenses vs invested</small></h2>
+      <div id="trendChart"></div>
+      <div class="legend">
+        <span><i class="dot" style="background:var(--green)"></i>Income</span>
+        <span><i class="dot" style="background:var(--red)"></i>Expenses</span>
+        <span><i class="dot" style="background:var(--purple)"></i>Invested</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- TRANSACTIONS -->
+  <div class="tab" id="tab-tx">
+    <div class="panel">
+      <h2>Quick add <small>— tap to log instantly (today's date)</small></h2>
+      <div id="presetBar" style="display:flex;gap:8px;flex-wrap:wrap"></div>
+    </div>
+    <div class="panel">
+      <h2>Add transaction</h2>
+      <form id="txForm" onsubmit="return addTx(event)">
+        <div class="row">
+          <div class="f"><label>Type</label>
+            <select id="txType" onchange="syncTxCats()">
+              <option value="expense">Expense</option>
+              <option value="income">Income</option>
+              <option value="invest">Investment</option>
+            </select></div>
+          <div class="f"><label>Date</label><input type="date" id="txDate" required></div>
+          <div class="f"><label>Category</label><select id="txCat"></select></div>
+        </div>
+        <div class="row">
+          <div class="f"><label>Amount (IDR — supports 50rb, 1.5jt)</label><input id="txAmt" placeholder="e.g. 150000 or 150rb" required></div>
+          <div class="f" style="flex:2"><label>Note</label><input id="txNote" placeholder="optional"></div>
+          <div style="align-self:flex-end;display:flex;gap:8px">
+            <button class="btn" type="submit">Add</button>
+            <button class="btn sec" type="button" onclick="savePreset()" title="Save current form as a quick-add chip">☆ Preset</button>
+          </div>
+        </div>
+      </form>
+    </div>
+    <div class="panel">
+      <h2 id="txListTitle">Transactions</h2>
+      <div class="row" style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px">
+        <div class="f" style="flex:2"><input id="txSearch" placeholder="🔍 Search note or category…" oninput="renderTx()"></div>
+        <div class="f"><select id="txFilterType" onchange="renderTx()">
+          <option value="all">All types</option><option value="expense">Expenses</option>
+          <option value="income">Income</option><option value="invest">Investments</option>
+        </select></div>
+      </div>
+      <div id="txList"></div>
+    </div>
+  </div>
+
+  <!-- BUDGET -->
+  <div class="tab" id="tab-budget">
+    <div class="panel">
+      <h2>Monthly plan</h2>
+      <div class="row" style="display:flex;gap:10px;flex-wrap:wrap">
+        <div class="f"><label>Expected monthly income (IDR)</label><input id="setIncome" placeholder="e.g. 15jt"></div>
+        <div class="f"><label>Savings + invest target (% of income)</label><input id="setSavePct" type="number" min="0" max="90"></div>
+        <div style="align-self:flex-end"><button class="btn" onclick="saveSettings()">Save</button></div>
+      </div>
+      <p class="hint" id="planHint"></p>
+    </div>
+    <div class="panel">
+      <h2>Category limits <small>— strict monthly caps</small></h2>
+      <div id="catList"></div>
+      <div class="row" style="display:flex;gap:10px;margin-top:12px;flex-wrap:wrap">
+        <div class="f"><input id="newCatName" placeholder="New category name"></div>
+        <div class="f"><input id="newCatLimit" placeholder="Limit, e.g. 500rb"></div>
+        <button class="btn sec" onclick="addCat()">Add category</button>
+      </div>
+    </div>
+    <div class="panel">
+      <h2>Data</h2>
+      <div style="display:flex;gap:10px;flex-wrap:wrap">
+        <button class="btn sec" onclick="exportData()">Export backup (JSON)</button>
+        <button class="btn sec" onclick="document.getElementById('importFile').click()">Import backup</button>
+        <button class="btn sec" onclick="exportCSV()">Export CSV (Excel)</button>
+        <input type="file" id="importFile" accept=".json" style="display:none" onchange="importData(event)">
+        <button class="btn sec" onclick="changePin()">Change PIN</button>
+        <button class="btn danger" onclick="resetData()">Reset all data</button>
+      </div>
+      <p class="hint">Data is stored encrypted in this browser (AES-256, unlocked by your PIN). ⚠️ Exported backups are UNENCRYPTED plain text — store them somewhere private. There is no PIN recovery: if you forget it, only a backup can restore your data.</p>
+    </div>
+    <div class="panel">
+      <h2>Sync across devices <small>— via private GitHub Gist</small></h2>
+      <div id="syncUI"></div>
+    </div>
+  </div>
+
+  <!-- INVEST -->
+  <div class="tab" id="tab-invest">
+    <div class="grid2">
+      <div class="panel">
+        <h2>Strategy inputs</h2>
+        <div class="row" style="display:flex;gap:10px;flex-wrap:wrap">
+          <div class="f"><label>Current portfolio value (IDR)</label><input id="invCurrent"></div>
+          <div class="f"><label>Monthly investment (IDR)</label><input id="invMonthly"></div>
+        </div>
+        <div class="row" style="display:flex;gap:10px;flex-wrap:wrap">
+          <div class="f"><label>Expected annual return (%)</label><input id="invReturn" type="number" step="0.5"></div>
+          <div class="f"><label>Wealth goal (IDR)</label><input id="invGoal"></div>
+        </div>
+        <button class="btn" onclick="saveInvest()">Update projection</button>
+        <p class="hint">IDX reference points: LQ45 blue chips ~8–12%/yr long-run, dividend stocks ~6–9% + dividends, reksadana indeks tracks market. Past performance ≠ guarantee.</p>
+      </div>
+      <div class="panel">
+        <h2>Target allocation <small>— must total 100%</small></h2>
+        <div id="allocRows"></div>
+        <p id="allocTotal" class="hint"></p>
+        <div id="allocDonut" style="margin-top:10px;display:flex;align-items:center;gap:16px;flex-wrap:wrap"></div>
+      </div>
+    </div>
+    <div class="panel">
+      <h2>Wealth projection</h2>
+      <div id="projSummary" class="cards"></div>
+      <div id="projChart"></div>
+    </div>
+    <div class="panel">
+      <h2>📈 IDX holdings <small>— update prices manually, e.g. weekly</small></h2>
+      <div id="holdList"></div>
+      <div class="row" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px">
+        <div class="f" style="min-width:80px"><label>Ticker</label><input id="hTicker" placeholder="BBCA" style="text-transform:uppercase"></div>
+        <div class="f"><label>Class</label><select id="hClass">
+          <option value="blue">Blue chip</option><option value="div">Dividend</option>
+          <option value="fund">Reksadana/ETF</option><option value="cash">Cash/RDPU</option></select></div>
+        <div class="f" style="min-width:70px"><label>Lots</label><input id="hLots" type="number" min="0" step="0.01" placeholder="10"></div>
+        <div class="f"><label>Avg buy /share</label><input id="hAvg" placeholder="9500"></div>
+        <div class="f"><label>Current /share</label><input id="hCur" placeholder="10250"></div>
+        <div style="align-self:flex-end"><button class="btn" onclick="addHolding()">Add</button></div>
+      </div>
+      <p class="hint">1 lot = 100 shares. For reksadana: treat NAV/unit as the share price and units÷100 as lots.</p>
+    </div>
+    <div class="panel">
+      <h2>Strategy notes for IDX investors</h2>
+      <p class="muted" style="line-height:1.6">
+        <b style="color:var(--text)">Dollar-cost averaging:</b> invest the same amount every month regardless of market moves — it removes timing stress and suits a salary cycle.<br>
+        <b style="color:var(--text)">Blue chips (LQ45/IDX30):</b> core holdings like banking and consumer staples give stability and liquidity.<br>
+        <b style="color:var(--text)">Dividend stocks:</b> reinvest dividends to compound; look for consistent payout history.<br>
+        <b style="color:var(--text)">Reksadana indeks / ETF:</b> lowest-effort diversification; good for the portion you don't want to research.<br>
+        <b style="color:var(--text)">Cash buffer:</b> keep an emergency fund (3–6 months of expenses) in RDPU or deposito before going heavier into stocks.
+      </p>
+    </div>
+  </div>
+
+  <!-- YEAR -->
+  <div class="tab" id="tab-year">
+    <div class="panel">
+      <div class="flexbtw">
+        <h2 style="margin:0">Year overview</h2>
+        <div class="month-nav">
+          <button onclick="shiftYear(-1)">‹</button><b id="yearLabel" style="min-width:60px"></b><button onclick="shiftYear(1)">›</button>
+        </div>
+      </div>
+      <div id="yearTable" style="margin-top:14px;overflow-x:auto"></div>
+    </div>
+    <div class="panel">
+      <h2>Cumulative saved + invested</h2>
+      <div id="yearChart"></div>
+    </div>
+  </div>
+
+  <!-- GOALS -->
+  <div class="tab" id="tab-goals">
+    <div class="panel">
+      <h2>🧮 Goal simulator <small>— can you afford it, and how fast?</small></h2>
+      <div class="row" style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px">
+        <div class="f"><label>Monthly income (IDR)</label><input id="simIncome" placeholder="e.g. 15jt"></div>
+        <div class="f"><label>Already saved (IDR)</label><input id="simCurrent" placeholder="0"></div>
+        <div class="f"><label>Target amount (IDR)</label><input id="simTarget" placeholder="e.g. 100jt"></div>
+      </div>
+      <div class="row" style="display:flex;gap:10px;flex-wrap:wrap">
+        <div class="f"><label>Monthly saving (IDR)</label><input id="simMonthly" placeholder="e.g. 5jt"></div>
+        <div class="f"><label>Deadline (years)</label><input id="simYears" type="number" step="0.5" min="0" placeholder="e.g. 3"></div>
+        <div style="align-self:flex-end"><button class="btn" onclick="runSim()">Simulate</button></div>
+      </div>
+      <div id="simResults" style="margin-top:12px"></div>
+    </div>
+    <div class="panel">
+      <h2>Add savings goal</h2>
+      <div class="row" style="display:flex;gap:10px;flex-wrap:wrap">
+        <div class="f"><label>Name</label><input id="goalName" placeholder="e.g. Emergency fund"></div>
+        <div class="f"><label>Target (IDR)</label><input id="goalTarget" placeholder="e.g. 30jt"></div>
+        <div class="f"><label>Deadline</label><input id="goalDeadline" type="month"></div>
+        <div style="align-self:flex-end"><button class="btn" onclick="addGoal()">Add goal</button></div>
+      </div>
+    </div>
+    <div class="panel">
+      <h2>Your goals</h2>
+      <div id="goalList"></div>
+    </div>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<!-- LOCK SCREEN -->
+<div id="lockScreen" style="position:fixed;inset:0;background:var(--bg);z-index:200;display:flex;align-items:center;justify-content:center;padding:20px">
+  <div class="panel" style="max-width:340px;width:100%;text-align:center">
+    <div style="font-size:2rem;margin-bottom:8px">🔒</div>
+    <h2 id="lockTitle" style="margin-bottom:4px">Enter PIN</h2>
+    <p id="lockSub" class="hint" style="margin-bottom:14px"></p>
+    <input id="pin1" type="password" inputmode="numeric" autocomplete="off" placeholder="PIN"
+      style="text-align:center;font-size:1.3rem;letter-spacing:.4em;margin-bottom:10px" maxlength="12">
+    <input id="pin2" type="password" inputmode="numeric" autocomplete="off" placeholder="Confirm PIN"
+      style="text-align:center;font-size:1.3rem;letter-spacing:.4em;margin-bottom:10px;display:none" maxlength="12">
+    <p id="lockMsg" class="hint red" style="min-height:16px;margin-bottom:10px"></p>
+    <button class="btn" id="lockBtn" style="width:100%" onclick="lockAction()">Unlock</button>
+    <p style="margin-top:14px"><a href="#" id="forgotLink" class="muted" style="display:none"
+      onclick="forgotPin();return false">Forgot PIN? Reset all data</a></p>
+  </div>
+</div>
+
+<script>
+/* ---------- state ---------- */
+const KEY='daveFinanceTracker_v1';
+const DEFAULTS={
+  settings:{income:0,savePct:40},
+  categories:[
+    {id:'food',name:'Food & Groceries',limit:1500000},
+    {id:'transport',name:'Transport',limit:500000},
+    {id:'bills',name:'Bills & Utilities',limit:800000},
+    {id:'social',name:'Social & Fun',limit:500000},
+    {id:'health',name:'Health',limit:300000},
+    {id:'misc',name:'Misc',limit:300000}
+  ],
+  transactions:[],
+  invest:{current:0,monthly:0,ret:9,goal:1000000000,alloc:{blue:40,div:20,fund:30,cash:10}},
+  goals:[]
+};
+let S=structuredClone(DEFAULTS);
+
+/* ---------- PIN lock + AES-GCM encryption ---------- */
+const ENC_KEY='daveFinanceTracker_enc_v1';
+let cryptoKey=null,pendingSalt=null,sessionPin=null;
+const te=new TextEncoder(),td=new TextDecoder();
+const b64=u8=>btoa(String.fromCharCode(...u8));
+const unb64=s=>Uint8Array.from(atob(s),c=>c.charCodeAt(0));
+const hasCrypto=!!(window.crypto&&crypto.subtle);
+async function deriveKey(pin,salt){
+  const km=await crypto.subtle.importKey('raw',te.encode(pin),'PBKDF2',false,['deriveKey']);
+  return crypto.subtle.deriveKey({name:'PBKDF2',salt,iterations:310000,hash:'SHA-256'},
+    km,{name:'AES-GCM',length:256},false,['encrypt','decrypt']);
+}
+async function encryptSave(){
+  if(!cryptoKey||!pendingSalt)return;
+  const iv=crypto.getRandomValues(new Uint8Array(12));
+  const ct=await crypto.subtle.encrypt({name:'AES-GCM',iv},cryptoKey,te.encode(JSON.stringify(S)));
+  localStorage.setItem(ENC_KEY,JSON.stringify({salt:b64(pendingSalt),iv:b64(iv),ct:b64(new Uint8Array(ct)),updatedAt:Date.now()}));
+  scheduleSyncPush();
+}
+function save(){
+  if(cryptoKey){encryptSave().catch(()=>{});}
+  else{try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){}}
+}
+function normalizeState(d){
+  S=d||structuredClone(DEFAULTS);
+  S.settings=Object.assign({},DEFAULTS.settings,S.settings);
+  S.invest=Object.assign({},DEFAULTS.invest,S.invest);
+  S.invest.alloc=Object.assign({},DEFAULTS.invest.alloc,S.invest.alloc);
+  S.categories=S.categories||structuredClone(DEFAULTS.categories);
+  S.transactions=S.transactions||[];S.goals=S.goals||[];
+  S.presets=S.presets||[];S.holdings=S.holdings||[];
+}
+function loadPlain(){
+  let d=null;try{d=JSON.parse(localStorage.getItem(KEY));}catch(e){}
+  normalizeState(d);
+}
+let lockMode='unlock'; // 'unlock' | 'setup'
+function showLock(mode,subtitle){
+  lockMode=mode;
+  const setup=mode==='setup';
+  document.getElementById('lockScreen').style.display='flex';
+  document.getElementById('lockTitle').textContent=setup?'Set a PIN':'Enter PIN';
+  document.getElementById('lockSub').textContent=subtitle||(setup?'Min 4 digits. Your data will be encrypted with it — there is no recovery if forgotten.':'');
+  document.getElementById('pin2').style.display=setup?'block':'none';
+  document.getElementById('lockBtn').textContent=setup?'Set PIN & encrypt':'Unlock';
+  document.getElementById('forgotLink').style.display=setup?'none':'inline';
+  document.getElementById('lockMsg').textContent='';
+  document.getElementById('pin1').value='';document.getElementById('pin2').value='';
+  setTimeout(()=>document.getElementById('pin1').focus(),50);
+}
+function hideLock(){document.getElementById('lockScreen').style.display='none';}
+async function lockAction(){
+  const msg=document.getElementById('lockMsg');
+  const p1=document.getElementById('pin1').value,p2=document.getElementById('pin2').value;
+  const btn=document.getElementById('lockBtn');btn.disabled=true;
+  try{
+    if(lockMode==='setup'){
+      if(!/^\d{4,12}$/.test(p1)){msg.textContent='PIN must be 4–12 digits';return;}
+      if(p1!==p2){msg.textContent='PINs do not match';return;}
+      pendingSalt=crypto.getRandomValues(new Uint8Array(16));
+      cryptoKey=await deriveKey(p1,pendingSalt);
+      sessionPin=p1;
+      await encryptSave();
+      localStorage.removeItem(KEY); // remove plaintext copy
+      hideLock();startApp();toast('PIN set — data is now encrypted 🔐','var(--green)');
+    }else{
+      const blob=JSON.parse(localStorage.getItem(ENC_KEY));
+      pendingSalt=unb64(blob.salt);
+      const key=await deriveKey(p1,pendingSalt);
+      const pt=await crypto.subtle.decrypt({name:'AES-GCM',iv:unb64(blob.iv)},key,unb64(blob.ct));
+      cryptoKey=key;
+      sessionPin=p1;
+      normalizeState(JSON.parse(td.decode(pt)));
+      hideLock();startApp();
+      if(S.sync&&S.sync.gistId)syncPull(true);
+    }
+  }catch(e){
+    msg.textContent='Wrong PIN';
+    document.getElementById('pin1').value='';
+  }finally{btn.disabled=false;}
+}
+function forgotPin(){
+  if(confirm('Reset ALL data? Without the PIN your encrypted data cannot be recovered. This deletes everything and starts fresh.')
+    &&confirm('Are you sure? This cannot be undone.')){
+    localStorage.removeItem(ENC_KEY);localStorage.removeItem(KEY);
+    cryptoKey=null;normalizeState(null);
+    showLock('setup');
+  }
+}
+function changePin(){
+  showLock('setup','Choose a new PIN. Your data stays — it will be re-encrypted.');
+}
+function lockNow(){location.reload();}
+function initLock(){
+  if(!hasCrypto){ // very old browser: run without encryption
+    loadPlain();hideLock();startApp();
+    toast('Encryption unavailable in this browser — running unlocked','var(--amber)');
+    return;
+  }
+  if(localStorage.getItem(ENC_KEY)){showLock('unlock');}
+  else{loadPlain();showLock('setup');}
+}
+['pin1','pin2'].forEach(id=>document.getElementById(id).addEventListener('keydown',e=>{if(e.key==='Enter')lockAction();}));
+
+let curMonth=new Date().toISOString().slice(0,7); // YYYY-MM
+
+/* ---------- helpers ---------- */
+const fmt=n=>'Rp '+Math.round(n).toLocaleString('id-ID');
+const fmtShort=n=>{
+  const a=Math.abs(n);
+  if(a>=1e12)return 'Rp '+(n/1e12).toFixed(1).replace(/\.0$/,'')+' T';
+  if(a>=1e9)return 'Rp '+(n/1e9).toFixed(1).replace(/\.0$/,'')+' M';
+  if(a>=1e6)return 'Rp '+(n/1e6).toFixed(1).replace(/\.0$/,'')+' jt';
+  if(a>=1e3)return 'Rp '+(n/1e3).toFixed(0)+' rb';
+  return 'Rp '+n;
+};
+function parseIDR(str){
+  if(typeof str==='number')return str;
+  let s=(str||'').toString().trim().toLowerCase().replace(/rp\.?\s*/g,'').replace(/\s/g,'');
+  let mult=1;
+  if(/jt|juta|m$/.test(s)){mult=1e6;s=s.replace(/jt|juta|m$/g,'');}
+  else if(/rb|ribu|k$/.test(s)){mult=1e3;s=s.replace(/rb|ribu|k$/g,'');}
+  // treat comma as decimal sep, dots as thousand sep when mult>1; otherwise strip separators
+  if(mult>1){s=s.replace(/\./g,'.').replace(/,/g,'.');}
+  else{s=s.replace(/[.,](?=\d{3}\b)/g,'').replace(/,/g,'.');}
+  const v=parseFloat(s);
+  return isNaN(v)?NaN:v*mult;
+}
+const monthName=m=>{
+  const[y,mo]=m.split('-');
+  return new Date(y,mo-1,1).toLocaleDateString('en-US',{month:'long',year:'numeric'});
+};
+function toast(msg,color){
+  const t=document.getElementById('toast');
+  t.textContent=msg;t.style.display='block';t.style.borderColor=color||'var(--line)';
+  clearTimeout(t._h);t._h=setTimeout(()=>t.style.display='none',3200);
+}
+const txOfMonth=m=>S.transactions.filter(t=>t.date.slice(0,7)===m);
+const sum=(arr,f)=>arr.reduce((a,t)=>a+(f?f(t):t.amount),0);
+
+/* ---------- navigation ---------- */
+function showTab(id){
+  document.querySelectorAll('.tab').forEach(e=>e.classList.remove('active'));
+  document.querySelectorAll('nav button').forEach(e=>e.classList.remove('active'));
+  document.getElementById('tab-'+id).classList.add('active');
+  document.querySelector('nav button[data-tab='+id+']').classList.add('active');
+}
+function shiftMonth(d){
+  const[y,m]=curMonth.split('-').map(Number);
+  const dt=new Date(y,m-1+d,1);
+  curMonth=dt.getFullYear()+'-'+String(dt.getMonth()+1).padStart(2,'0');
+  render();
+}
+
+/* ---------- transactions ---------- */
+function syncTxCats(){
+  const type=document.getElementById('txType').value;
+  const sel=document.getElementById('txCat');
+  if(type==='expense'){
+    sel.innerHTML=S.categories.map(c=>`<option value="${c.id}">${c.name}</option>`).join('');
+    sel.disabled=false;
+  }else if(type==='income'){
+    sel.innerHTML='<option value="salary">Salary</option><option value="bonus">Bonus</option><option value="dividend">Dividend</option><option value="other-income">Other</option>';
+    sel.disabled=false;
+  }else{
+    sel.innerHTML='<option value="idx-stock">IDX Stocks</option><option value="reksadana">Reksadana/ETF</option><option value="deposito">Deposito/RDPU</option><option value="other-invest">Other</option>';
+    sel.disabled=false;
+  }
+}
+function addTxCore(type,date,cat,amt,note){
+  if(!date||isNaN(amt)||amt<=0){toast('Enter a valid date and amount','var(--red)');return false;}
+  if(type==='expense'){
+    const c=S.categories.find(x=>x.id===cat);
+    if(c){
+      const spent=sum(txOfMonth(date.slice(0,7)).filter(t=>t.type==='expense'&&t.cat===cat));
+      if(spent+amt>c.limit){
+        const overBy=spent+amt-c.limit;
+        if(!confirm(`⚠️ STRICT BUDGET WARNING\n\nThis puts "${c.name}" ${fmt(overBy)} OVER its ${fmt(c.limit)} monthly limit.\n\nAdd anyway?`))return false;
+      }
+    }
+  }
+  S.transactions.push({id:Date.now()+Math.floor(Math.random()*1000),type,date,cat,amount:amt,note});
+  if(type==='invest')S.invest.current+=amt;
+  save();
+  return true;
+}
+function addTx(e){
+  e.preventDefault();
+  const ok=addTxCore(
+    document.getElementById('txType').value,
+    document.getElementById('txDate').value,
+    document.getElementById('txCat').value,
+    parseIDR(document.getElementById('txAmt').value),
+    document.getElementById('txNote').value.trim());
+  if(ok){
+    document.getElementById('txAmt').value='';document.getElementById('txNote').value='';
+    toast('Transaction added ✓','var(--green)');
+    render();
+  }
+  return false;
+}
+
+/* ---------- quick-add presets ---------- */
+function savePreset(){
+  const type=document.getElementById('txType').value;
+  const cat=document.getElementById('txCat').value;
+  const amt=parseIDR(document.getElementById('txAmt').value);
+  const note=document.getElementById('txNote').value.trim();
+  if(isNaN(amt)||amt<=0){toast('Fill in the amount (and optionally a note) first, then hit ☆ Preset','var(--red)');return;}
+  const name=note||catName({type,cat});
+  S.presets.push({id:Date.now(),name,type,cat,amount:amt});
+  save();renderPresets();
+  toast('Preset "'+name+'" saved ✓','var(--green)');
+}
+function quickAdd(id){
+  const p=S.presets.find(x=>x.id===id);if(!p)return;
+  const today=new Date();
+  const date=today.getFullYear()+'-'+String(today.getMonth()+1).padStart(2,'0')+'-'+String(today.getDate()).padStart(2,'0');
+  if(addTxCore(p.type,date,p.cat,p.amount,p.name)){
+    toast(p.name+' — '+fmtShort(p.amount)+' logged ✓','var(--green)');
+    render();
+  }
+}
+function delPreset(e,id){
+  e.stopPropagation();
+  S.presets=S.presets.filter(p=>p.id!==id);save();renderPresets();
+}
+function renderPresets(){
+  const el=document.getElementById('presetBar');if(!el)return;
+  el.innerHTML=S.presets.length?S.presets.map(p=>
+    `<span class="chip" onclick="quickAdd(${p.id})" title="${p.type}">
+     ${p.type==='income'?'💵':p.type==='invest'?'📊':'🛒'} ${p.name} · <b>${fmtShort(p.amount)}</b>
+     <span class="x" onclick="delPreset(event,${p.id})">✕</span></span>`).join(''):
+    '<span class="muted">No presets yet. Fill the form below and press <b>☆ Preset</b> to create one-tap shortcuts for frequent expenses.</span>';
+}
+function delTx(id){
+  const t=S.transactions.find(x=>x.id===id);
+  if(t&&t.type==='invest')S.invest.current=Math.max(0,S.invest.current-t.amount);
+  S.transactions=S.transactions.filter(x=>x.id!==id);
+  save();render();
+}
+function catName(t){
+  if(t.type==='expense'){const c=S.categories.find(x=>x.id===t.cat);return c?c.name:t.cat;}
+  return {'salary':'Salary','bonus':'Bonus','dividend':'Dividend','other-income':'Other','idx-stock':'IDX Stocks','reksadana':'Reksadana/ETF','deposito':'Deposito/RDPU','other-invest':'Other'}[t.cat]||t.cat;
+}
+function renderTx(){
+  const q=((document.getElementById('txSearch')||{}).value||'').toLowerCase();
+  const ft=((document.getElementById('txFilterType')||{}).value)||'all';
+  let list=txOfMonth(curMonth);
+  if(ft!=='all')list=list.filter(t=>t.type===ft);
+  if(q)list=list.filter(t=>(t.note||'').toLowerCase().includes(q)||catName(t).toLowerCase().includes(q));
+  list=list.sort((a,b)=>b.date.localeCompare(a.date)||b.id-a.id);
+  document.getElementById('txListTitle').textContent='Transactions — '+monthName(curMonth)+' ('+list.length+')';
+  const el=document.getElementById('txList');
+  if(!list.length){el.innerHTML='<div class="empty">No transactions this month yet.</div>';return;}
+  el.innerHTML='<table><tr><th></th><th>Name</th><th>Date</th><th class="num">Amount</th><th></th></tr>'+
+    list.map(t=>`<tr>
+      <td style="width:44px"><span class="ticon">${t.type==='income'?'💵':t.type==='invest'?'📊':'🛒'}</span></td>
+      <td><b>${catName(t)}</b><br><span class="muted" style="font-size:.75rem">${t.note||t.type}</span></td>
+      <td class="muted">${t.date.slice(8)}/${t.date.slice(5,7)}</td>
+      <td class="num" style="font-weight:700;color:${t.type==='income'?'var(--green)':t.type==='invest'?'var(--purple)':'var(--text)'}">${t.type==='income'?'+ ':'− '}${fmt(t.amount)}</td>
+      <td><button class="del" onclick="delTx(${t.id})">✕</button></td></tr>`).join('')+'</table>';
+}
+
+/* ---------- budget ---------- */
+function saveSettings(){
+  const inc=parseIDR(document.getElementById('setIncome').value);
+  const pct=parseFloat(document.getElementById('setSavePct').value);
+  if(!isNaN(inc))S.settings.income=inc;
+  if(!isNaN(pct))S.settings.savePct=Math.min(90,Math.max(0,pct));
+  save();render();toast('Plan saved ✓','var(--green)');
+}
+function addCat(){
+  const name=document.getElementById('newCatName').value.trim();
+  const limit=parseIDR(document.getElementById('newCatLimit').value);
+  if(!name||isNaN(limit)){toast('Enter a name and limit','var(--red)');return;}
+  S.categories.push({id:'c'+Date.now(),name,limit});
+  document.getElementById('newCatName').value='';document.getElementById('newCatLimit').value='';
+  save();render();
+}
+function updCatLimit(id,val){
+  const v=parseIDR(val);const c=S.categories.find(x=>x.id===id);
+  if(c&&!isNaN(v)){c.limit=v;save();renderDash();renderBudget();}
+}
+function delCat(id){
+  if(!confirm('Remove this category? Existing transactions keep their record.'))return;
+  S.categories=S.categories.filter(c=>c.id!==id);save();render();
+}
+function renderBudget(){
+  document.getElementById('setIncome').value=S.settings.income||'';
+  document.getElementById('setSavePct').value=S.settings.savePct;
+  const saveAmt=S.settings.income*S.settings.savePct/100;
+  const totalLimits=sum(S.categories,c=>c.limit);
+  const spendable=S.settings.income-saveAmt;
+  document.getElementById('planHint').innerHTML=S.settings.income?
+    `Pay yourself first: <b class="green">${fmt(saveAmt)}</b> to savings/investing each month → <b>${fmt(spendable)}</b> left for spending. Category limits total <b class="${totalLimits>spendable?'red':'green'}">${fmt(totalLimits)}</b>${totalLimits>spendable?' — ⚠️ limits exceed spendable amount!':' ✓ fits your plan.'}`:
+    'Set your income to see your savings-first plan.';
+  document.getElementById('catList').innerHTML=S.categories.map(c=>`
+    <div class="row" style="display:flex;gap:10px;align-items:center;margin-bottom:8px;flex-wrap:wrap">
+      <div style="flex:2;min-width:130px">${c.name}</div>
+      <div class="f"><input value="${c.limit}" onchange="updCatLimit('${c.id}',this.value)"></div>
+      <button class="del" onclick="delCat('${c.id}')">✕</button>
+    </div>`).join('');
+}
+
+/* ---------- dashboard ---------- */
+const DONUT_COLORS=['#141414','#E8452E','#3D5AF1','#D97E0F','#1F9D55','#7A6FF0','#A89B7E','#6B6B6B','#4E7A76','#C46A9A'];
+function renderDash(){
+  const tx=txOfMonth(curMonth);
+  const income=sum(tx.filter(t=>t.type==='income'));
+  const expense=sum(tx.filter(t=>t.type==='expense'));
+  const invested=sum(tx.filter(t=>t.type==='invest'));
+  const saved=income-expense-invested;
+  const savedTotal=invested+Math.max(0,saved);
+  const rate=income>0?Math.round(savedTotal/income*100):0;
+  document.getElementById('dashCards').innerHTML=`
+    <div class="hero">
+      <div class="lbl" style="font-size:.72rem;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;font-weight:600">Saved this month</div>
+      <div class="hero-num">${fmt(savedTotal)}</div>
+      <span class="badge ${rate>=S.settings.savePct?'ok':''}">${rate}% savings rate</span>
+      <span class="badge" style="background:var(--card2);color:var(--text)">target ${S.settings.savePct}%</span>
+    </div>
+    <div class="card"><div class="lbl">Income</div><div class="val green">${fmt(income)}</div></div>
+    <div class="card"><div class="lbl">Expenses</div><div class="val">${fmt(expense)}</div></div>
+    <div class="card"><div class="lbl">Invested</div><div class="val" style="color:var(--purple)">${fmt(invested)}</div></div>
+    <div class="card"><div class="lbl">Left to spend</div><div class="val ${saved>=0?'':'red'}">${fmt(saved)}</div></div>`;
+
+  // savings-first
+  const targetAmt=(S.settings.income||income)*S.settings.savePct/100;
+  const pct=targetAmt>0?Math.min(100,Math.round(savedTotal/targetAmt*100)):0;
+  document.getElementById('savingsFirst').innerHTML=targetAmt>0?`
+    <div class="big ${pct>=100?'green':''}">${pct}%</div>
+    <p class="muted" style="margin:6px 0 10px">${fmt(savedTotal)} of ${fmt(targetAmt)} monthly target (${S.settings.savePct}% of income)</p>
+    <div class="bar" style="height:14px"><i style="width:${pct}%;background:${pct>=100?'var(--green)':'var(--accent)'}"></i></div>
+    ${pct>=100?'<p class="hint green" style="margin-top:8px">🎉 Target hit — anything extra compounds your wealth faster.</p>':'<p class="hint" style="margin-top:8px">Transfer to savings/investments right after payday, before spending.</p>'}`:
+    '<div class="empty">Set your income and savings % in the Budget tab.</div>';
+
+  // donut
+  const byCat={};
+  tx.filter(t=>t.type==='expense').forEach(t=>{byCat[t.cat]=(byCat[t.cat]||0)+t.amount;});
+  const entries=Object.entries(byCat).sort((a,b)=>b[1]-a[1]);
+  const dw=document.getElementById('donutWrap');
+  if(!entries.length){dw.innerHTML='<div class="empty" style="width:100%">No expenses yet this month.</div>';}
+  else{
+    let acc=0;const stops=entries.map(([cat,amt],i)=>{
+      const p1=acc/expense*100;acc+=amt;const p2=acc/expense*100;
+      return `${DONUT_COLORS[i%10]} ${p1}% ${p2}%`;}).join(',');
+    dw.innerHTML=`<div style="width:130px;height:130px;border-radius:50%;background:conic-gradient(${stops});position:relative;flex-shrink:0">
+      <div style="position:absolute;inset:26px;border-radius:50%;background:var(--card);display:flex;align-items:center;justify-content:center;flex-direction:column">
+      <span style="font-size:.65rem;color:var(--muted)">TOTAL</span><b style="font-size:.78rem">${fmtShort(expense)}</b></div></div>
+      <div class="legend" style="flex-direction:column;align-items:flex-start;gap:6px">${entries.map(([cat,amt],i)=>{
+        const c=S.categories.find(x=>x.id===cat);
+        return `<span><i class="dot" style="background:${DONUT_COLORS[i%10]}"></i>${c?c.name:cat} — ${fmtShort(amt)} (${Math.round(amt/expense*100)}%)</span>`;}).join('')}</div>`;
+  }
+
+  // budget bars
+  document.getElementById('budgetBars').innerHTML=S.categories.map(c=>{
+    const spent=byCat[c.id]||0;
+    const p=c.limit>0?spent/c.limit*100:0;
+    const cls=p>=100?'over':p>=80?'warn':'';
+    return `<div class="bar-row">
+      <div class="bar-top"><span>${c.name} ${p>=100?'<span class="over-lbl">OVER BUDGET</span>':''}</span>
+      <span class="amt">${fmtShort(spent)} / ${fmtShort(c.limit)} (${Math.round(p)}%)</span></div>
+      <div class="bar"><i class="${cls}" style="width:${Math.min(100,p)}%"></i></div></div>`;
+  }).join('')||'<div class="empty">Add categories in the Budget tab.</div>';
+
+  renderTrend();
+}
+function renderTrend(){
+  const months=[];const[y,m]=curMonth.split('-').map(Number);
+  for(let i=5;i>=0;i--){const d=new Date(y,m-1-i,1);months.push(d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0'));}
+  const data=months.map(mo=>{
+    const tx=txOfMonth(mo);
+    return {mo,inc:sum(tx.filter(t=>t.type==='income')),exp:sum(tx.filter(t=>t.type==='expense')),inv:sum(tx.filter(t=>t.type==='invest'))};
+  });
+  const max=Math.max(1,...data.flatMap(d=>[d.inc,d.exp,d.inv]));
+  const W=660,H=180,pad=30,bw=18,gw=(W-pad*2)/6;
+  let svg=`<svg viewBox="0 0 ${W} ${H+24}" style="width:100%">`;
+  data.forEach((d,i)=>{
+    const x=pad+i*gw+gw/2;
+    const bars=[[d.inc,'var(--green)'],[d.exp,'var(--red)'],[d.inv,'var(--purple)']];
+    bars.forEach(([v,col],j)=>{
+      const h=v/max*H;
+      svg+=`<rect x="${x-bw*1.5+j*bw+1}" y="${H-h}" width="${bw-2}" height="${h}" rx="3" fill="${col}" opacity="${v?1:.15}"/>`;
+    });
+    const lbl=new Date(d.mo+'-01').toLocaleDateString('en-US',{month:'short'});
+    svg+=`<text x="${x}" y="${H+16}" text-anchor="middle">${lbl}</text>`;
+  });
+  svg+='</svg>';
+  document.getElementById('trendChart').innerHTML=svg;
+}
+
+/* ---------- invest ---------- */
+const ALLOC_META=[['blue','IDX Blue Chips (LQ45)','#4f8ef7'],['div','Dividend Stocks','#3ecf8e'],['fund','Reksadana / ETF','#f6ad55'],['cash','Cash / RDPU buffer','#9f7aea']];
+function saveInvest(){
+  const g=id=>parseIDR(document.getElementById(id).value);
+  const c=g('invCurrent'),mo=g('invMonthly'),r=parseFloat(document.getElementById('invReturn').value),goal=g('invGoal');
+  if(!isNaN(c))S.invest.current=c;
+  if(!isNaN(mo))S.invest.monthly=mo;
+  if(!isNaN(r))S.invest.ret=r;
+  if(!isNaN(goal))S.invest.goal=goal;
+  save();renderInvest();toast('Projection updated ✓','var(--green)');
+}
+function updAlloc(k,v){S.invest.alloc[k]=parseInt(v)||0;save();renderAlloc();}
+function renderAlloc(){
+  const a=S.invest.alloc;
+  document.getElementById('allocRows').innerHTML=ALLOC_META.map(([k,name,col])=>`
+    <div class="alloc-row"><label><i class="dot" style="background:${col};margin-right:6px"></i>${name}</label>
+    <input type="range" min="0" max="100" step="5" value="${a[k]}" oninput="updAlloc('${k}',this.value)">
+    <b>${a[k]}%</b></div>`).join('');
+  const total=ALLOC_META.reduce((s,[k])=>s+a[k],0);
+  document.getElementById('allocTotal').innerHTML=total===100?
+    '<span class="green">✓ Allocation totals 100%</span>':
+    `<span class="red">⚠️ Totals ${total}% — adjust to 100%</span>`;
+  let acc=0;
+  const stops=ALLOC_META.filter(([k])=>a[k]>0).map(([k,,col])=>{
+    const p1=acc/Math.max(total,1)*100;acc+=a[k];const p2=acc/Math.max(total,1)*100;
+    return `${col} ${p1}% ${p2}%`;}).join(',');
+  const monthly=S.invest.monthly;
+  document.getElementById('allocDonut').innerHTML=stops?`
+    <div style="width:110px;height:110px;border-radius:50%;background:conic-gradient(${stops});position:relative;flex-shrink:0">
+    <div style="position:absolute;inset:22px;border-radius:50%;background:var(--card)"></div></div>
+    <div class="legend" style="flex-direction:column;align-items:flex-start;gap:5px">
+    ${ALLOC_META.filter(([k])=>a[k]>0).map(([k,name,col])=>`<span><i class="dot" style="background:${col}"></i>${name}: ${monthly?fmtShort(monthly*a[k]/total):a[k]+'%'} /mo</span>`).join('')}</div>`:'';
+}
+function renderInvest(){
+  document.getElementById('invCurrent').value=S.invest.current||'';
+  document.getElementById('invMonthly').value=S.invest.monthly||'';
+  document.getElementById('invReturn').value=S.invest.ret;
+  document.getElementById('invGoal').value=S.invest.goal||'';
+  renderAlloc();
+  const P=S.invest.current,PMT=S.invest.monthly,r=S.invest.ret/100/12,goal=S.invest.goal;
+  // years to goal
+  let yearsToGoal=null,v=P;
+  for(let mth=1;mth<=12*60;mth++){
+    v=v*(1+r)+PMT;
+    if(goal&&v>=goal){yearsToGoal=(mth/12);break;}
+  }
+  const fv=(yrs)=>{const n=yrs*12;return r>0?P*Math.pow(1+r,n)+PMT*((Math.pow(1+r,n)-1)/r):P+PMT*n;};
+  const horizons=[5,10,15,20];
+  document.getElementById('projSummary').innerHTML=
+    horizons.map(h=>`<div class="card"><div class="lbl">In ${h} years</div><div class="val">${fmtShort(fv(h))}</div></div>`).join('')+
+    `<div class="card"><div class="lbl">Reach ${fmtShort(goal)}</div><div class="val ${yearsToGoal?'green':'amber'}">${yearsToGoal?yearsToGoal.toFixed(1)+' yrs':PMT||P?'> 60 yrs':'—'}</div></div>`;
+  // projection chart (20y line)
+  const N=20,W=660,H=200,pad=40;
+  const pts=[];let maxV=goal||1;
+  for(let i=0;i<=N;i++){const val=fv(i);pts.push(val);if(val>maxV)maxV=val;}
+  const X=i=>pad+i/N*(W-pad-10),Y=val=>H-10-(val/maxV)*(H-30);
+  let path=pts.map((val,i)=>(i?'L':'M')+X(i).toFixed(1)+','+Y(val).toFixed(1)).join(' ');
+  let contrib=pts.map((_,i)=>(i?'L':'M')+X(i).toFixed(1)+','+Y(P+PMT*12*i).toFixed(1)).join(' ');
+  let svg=`<svg viewBox="0 0 ${W} ${H+20}" style="width:100%">`;
+  if(goal&&goal<=maxV){svg+=`<line x1="${pad}" y1="${Y(goal)}" x2="${W-10}" y2="${Y(goal)}" stroke="var(--amber)" stroke-dasharray="5 4" stroke-width="1.2"/><text x="${pad+4}" y="${Y(goal)-5}" fill="var(--amber)">Goal ${fmtShort(goal)}</text>`;}
+  svg+=`<path d="${contrib}" fill="none" stroke="var(--muted)" stroke-width="1.5" stroke-dasharray="3 4"/>`;
+  svg+=`<path d="${path}" fill="none" stroke="var(--accent)" stroke-width="2.5"/>`;
+  [0,5,10,15,20].forEach(yr=>{svg+=`<text x="${X(yr)}" y="${H+14}" text-anchor="middle">${yr}y</text>`;});
+  [0.25,.5,.75,1].forEach(f=>{svg+=`<text x="2" y="${Y(maxV*f)+3}">${fmtShort(maxV*f)}</text>`;});
+  svg+='</svg>';
+  document.getElementById('projChart').innerHTML=svg+
+    '<div class="legend"><span><i class="dot" style="background:var(--accent)"></i>Projected value (compounded)</span><span><i class="dot" style="background:var(--muted)"></i>Contributions only</span></div>';
+}
+
+/* ---------- IDX holdings ---------- */
+const CLASS_NAMES={blue:'Blue chip',div:'Dividend',fund:'Reksadana/ETF',cash:'Cash/RDPU'};
+function addHolding(){
+  const ticker=document.getElementById('hTicker').value.trim().toUpperCase();
+  const cls=document.getElementById('hClass').value;
+  const lots=parseFloat(document.getElementById('hLots').value);
+  const avg=parseIDR(document.getElementById('hAvg').value);
+  const cur=parseIDR(document.getElementById('hCur').value);
+  if(!ticker||isNaN(lots)||lots<=0||isNaN(avg)||isNaN(cur)){toast('Fill in ticker, lots, avg and current price','var(--red)');return;}
+  S.holdings.push({id:Date.now(),ticker,cls,lots,avg,cur});
+  ['hTicker','hLots','hAvg','hCur'].forEach(i=>document.getElementById(i).value='');
+  save();renderHoldings();
+}
+function updHolding(id,field,val){
+  const h=S.holdings.find(x=>x.id===id);if(!h)return;
+  const v=field==='lots'?parseFloat(val):parseIDR(val);
+  if(!isNaN(v)&&v>=0){h[field]=v;save();renderHoldings();}
+}
+function delHolding(id){
+  if(confirm('Remove this holding?')){S.holdings=S.holdings.filter(h=>h.id!==id);save();renderHoldings();}
+}
+function useHoldingsValue(){
+  const total=S.holdings.reduce((s,h)=>s+h.lots*100*h.cur,0);
+  S.invest.current=Math.round(total);save();renderInvest();
+  toast('Portfolio value set to '+fmtShort(total)+' ✓','var(--green)');
+}
+function renderHoldings(){
+  const el=document.getElementById('holdList');if(!el)return;
+  if(!S.holdings.length){el.innerHTML='<div class="empty">No holdings yet. Add your IDX positions below.</div>';return;}
+  const val=h=>h.lots*100*h.cur,cost=h=>h.lots*100*h.avg;
+  const total=S.holdings.reduce((s,h)=>s+val(h),0);
+  const totalCost=S.holdings.reduce((s,h)=>s+cost(h),0);
+  const gl=total-totalCost,glp=totalCost>0?gl/totalCost*100:0;
+  let html='<table><tr><th>Ticker</th><th>Class</th><th class="num">Lots</th><th class="num">Avg</th><th class="num">Now</th><th class="num">Value</th><th class="num">G/L</th><th></th></tr>';
+  S.holdings.forEach(h=>{
+    const g=val(h)-cost(h),gp=cost(h)>0?g/cost(h)*100:0;
+    html+=`<tr><td><b>${h.ticker}</b></td><td class="muted">${CLASS_NAMES[h.cls]||h.cls}</td>
+      <td class="num">${h.lots}</td><td class="num">${h.avg.toLocaleString('id-ID')}</td>
+      <td class="num"><input value="${h.cur}" onchange="updHolding(${h.id},'cur',this.value)" style="width:90px;text-align:right;padding:4px 6px"></td>
+      <td class="num">${fmtShort(val(h))}</td>
+      <td class="num ${g>=0?'green':'red'}">${g>=0?'+':''}${gp.toFixed(1)}%</td>
+      <td><button class="del" onclick="delHolding(${h.id})">✕</button></td></tr>`;
+  });
+  html+=`<tr style="font-weight:700"><td colspan="5">Total</td><td class="num">${fmtShort(total)}</td>
+    <td class="num ${gl>=0?'green':'red'}">${gl>=0?'+':''}${glp.toFixed(1)}%</td><td></td></tr></table>`;
+  // allocation drift vs target
+  if(total>0){
+    const byCls={};S.holdings.forEach(h=>byCls[h.cls]=(byCls[h.cls]||0)+val(h));
+    const targetTotal=ALLOC_META.reduce((s,[k])=>s+S.invest.alloc[k],0)||100;
+    let drift='<div style="margin-top:14px"><p class="muted" style="margin-bottom:8px"><b style="color:var(--text)">Allocation vs target:</b></p>';
+    ALLOC_META.forEach(([k,name,col])=>{
+      const actual=(byCls[k]||0)/total*100;
+      const target=S.invest.alloc[k]/targetTotal*100;
+      const d=actual-target;
+      drift+=`<div class="bar-top" style="font-size:.82rem;margin-bottom:2px">
+        <span><i class="dot" style="background:${col};margin-right:5px"></i>${name}</span>
+        <span class="amt">${actual.toFixed(0)}% vs ${target.toFixed(0)}% target
+        ${Math.abs(d)>5?`<b class="${d>0?'amber':'red'}"> · ${d>0?'trim':'add'} ${Math.abs(d).toFixed(0)}pp</b>`:' ✓'}</span></div>`;
+    });
+    drift+='</div>';
+    html+=drift+`<button class="btn sec sm" style="margin-top:10px" onclick="useHoldingsValue()">Use total as portfolio value in projection</button>`;
+  }
+  el.innerHTML=html;
+}
+
+/* ---------- year overview ---------- */
+let curYear=new Date().getFullYear();
+function shiftYear(d){curYear+=d;renderYear();}
+function renderYear(){
+  const el=document.getElementById('yearTable');if(!el)return;
+  document.getElementById('yearLabel').textContent=curYear;
+  const rows=[];let cum=0;const cumArr=[];
+  let tInc=0,tExp=0,tInv=0;
+  for(let m=1;m<=12;m++){
+    const mo=curYear+'-'+String(m).padStart(2,'0');
+    const tx=txOfMonth(mo);
+    const inc=sum(tx.filter(t=>t.type==='income'));
+    const exp=sum(tx.filter(t=>t.type==='expense'));
+    const inv=sum(tx.filter(t=>t.type==='invest'));
+    const savedTotal=inv+Math.max(0,inc-exp-inv);
+    const rate=inc>0?Math.round(savedTotal/inc*100):null;
+    cum+=savedTotal;cumArr.push(cum);
+    tInc+=inc;tExp+=exp;tInv+=inv;
+    rows.push({mo:new Date(curYear,m-1,1).toLocaleDateString('en-US',{month:'short'}),inc,exp,inv,savedTotal,rate,has:tx.length>0});
+  }
+  const tRate=tInc>0?Math.round((tInv+Math.max(0,tInc-tExp-tInv))/tInc*100):null;
+  el.innerHTML=`<table><tr><th>Month</th><th class="num">Income</th><th class="num">Expenses</th><th class="num">Invested</th><th class="num">Saved</th><th class="num">Rate</th></tr>`+
+    rows.map(r=>r.has?`<tr><td>${r.mo}</td><td class="num green">${fmtShort(r.inc)}</td><td class="num">${fmtShort(r.exp)}</td>
+      <td class="num" style="color:var(--purple)">${fmtShort(r.inv)}</td><td class="num">${fmtShort(r.savedTotal)}</td>
+      <td class="num ${r.rate!==null&&r.rate>=S.settings.savePct?'green':'amber'}">${r.rate===null?'—':r.rate+'%'}</td></tr>`:
+      `<tr style="opacity:.35"><td>${r.mo}</td><td class="num">—</td><td class="num">—</td><td class="num">—</td><td class="num">—</td><td class="num">—</td></tr>`).join('')+
+    `<tr style="font-weight:700;border-top:2px solid var(--line)"><td>Total</td><td class="num green">${fmtShort(tInc)}</td><td class="num">${fmtShort(tExp)}</td>
+      <td class="num" style="color:var(--purple)">${fmtShort(tInv)}</td><td class="num">${fmtShort(tInv+Math.max(0,tInc-tExp-tInv))}</td>
+      <td class="num">${tRate===null?'—':tRate+'%'}</td></tr></table>`;
+  // cumulative chart
+  const W=660,H=180,pad=40;
+  const maxV=Math.max(1,...cumArr);
+  const X=i=>pad+i/11*(W-pad-10),Y=v=>H-10-(v/maxV)*(H-30);
+  let path=cumArr.map((v,i)=>(i?'L':'M')+X(i).toFixed(1)+','+Y(v).toFixed(1)).join(' ');
+  let svg=`<svg viewBox="0 0 ${W} ${H+20}" style="width:100%">
+    <path d="${path} L ${X(11)} ${H-10} L ${X(0)} ${H-10} Z" fill="rgba(79,142,247,.12)"/>
+    <path d="${path}" fill="none" stroke="var(--accent)" stroke-width="2.5"/>`;
+  rows.forEach((r,i)=>{svg+=`<text x="${X(i)}" y="${H+14}" text-anchor="middle">${r.mo[0]}</text>`;});
+  [.5,1].forEach(f=>{svg+=`<text x="2" y="${Y(maxV*f)+3}">${fmtShort(maxV*f)}</text>`;});
+  svg+='</svg>';
+  document.getElementById('yearChart').innerHTML=svg;
+}
+
+/* ---------- CSV export ---------- */
+function exportCSV(){
+  const rows=[['date','type','category','amount','note']];
+  S.transactions.slice().sort((a,b)=>a.date.localeCompare(b.date)).forEach(t=>
+    rows.push([t.date,t.type,catName(t),t.amount,(t.note||'')]));
+  const csv=rows.map(r=>r.map(c=>{c=String(c).replace(/"/g,'""');return /[",\n;]/.test(c)?'"'+c+'"':c;}).join(',')).join('\r\n');
+  const blob=new Blob(['﻿'+csv],{type:'text/csv;charset=utf-8'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download='transactions-'+new Date().toISOString().slice(0,10)+'.csv';
+  a.click();
+}
+
+/* ---------- goals ---------- */
+function addGoal(){
+  const name=document.getElementById('goalName').value.trim();
+  const target=parseIDR(document.getElementById('goalTarget').value);
+  const deadline=document.getElementById('goalDeadline').value;
+  if(!name||isNaN(target)){toast('Enter a name and target','var(--red)');return;}
+  S.goals.push({id:Date.now(),name,target,saved:0,deadline});
+  document.getElementById('goalName').value='';document.getElementById('goalTarget').value='';
+  save();renderGoals();
+}
+function contribGoal(id){
+  const g=S.goals.find(x=>x.id===id);if(!g)return;
+  const v=parseIDR(prompt('Add contribution to "'+g.name+'" (IDR):','500rb'));
+  if(isNaN(v)||v<=0)return;
+  g.saved+=v;save();renderGoals();toast('Contribution added ✓','var(--green)');
+}
+function delGoal(id){if(confirm('Delete this goal?')){S.goals=S.goals.filter(g=>g.id!==id);save();renderGoals();}}
+function renderGoals(){
+  const el=document.getElementById('goalList');
+  if(!S.goals.length){el.innerHTML='<div class="empty">No goals yet. An emergency fund of 3–6 months of expenses is a great first one.</div>';return;}
+  el.innerHTML=S.goals.map(g=>{
+    const p=Math.min(100,Math.round(g.saved/g.target*100));
+    let pace='';
+    if(g.deadline){
+      const months=Math.max(0,(new Date(g.deadline+'-01')-new Date())/(30.44*24*3600*1000));
+      const needed=months>0?(g.target-g.saved)/months:0;
+      pace=g.saved>=g.target?' · ✓ done':months>0?` · need ${fmtShort(needed)}/mo until ${g.deadline}`:' · deadline passed';
+    }
+    return `<div class="goal">
+      <div class="flexbtw"><b>${g.name}</b>
+        <span><button class="btn sm sec" onclick="contribGoal(${g.id})">+ Add</button> <button class="del" onclick="delGoal(${g.id})">✕</button></span></div>
+      <p class="muted" style="margin:4px 0 6px">${fmt(g.saved)} / ${fmt(g.target)} (${p}%)${pace}</p>
+      <div class="bar"><i style="width:${p}%;background:${p>=100?'var(--green)':'var(--teal)'}"></i></div>
+    </div>`;
+  }).join('');
+}
+
+/* ---------- data ---------- */
+function exportData(){
+  const blob=new Blob([JSON.stringify(S,null,2)],{type:'application/json'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download='finance-backup-'+new Date().toISOString().slice(0,10)+'.json';
+  a.click();
+}
+function importData(e){
+  const f=e.target.files[0];if(!f)return;
+  const rd=new FileReader();
+  rd.onload=()=>{try{
+    const d=JSON.parse(rd.result);
+    if(!d.transactions||!d.categories)throw 0;
+    S=d;save();render();toast('Backup imported ✓','var(--green)');
+  }catch(err){toast('Invalid backup file','var(--red)');}};
+  rd.readAsText(f);
+  e.target.value='';
+}
+function resetData(){
+  if(confirm('Delete ALL data? This cannot be undone. Export a backup first!')){
+    S=structuredClone(DEFAULTS);save();render();toast('All data reset','var(--amber)');
+  }
+}
+
+/* ---------- weekly insights advisor ---------- */
+function renderInsights(){
+  const el=document.getElementById('insights');if(!el)return;
+  const today=new Date();today.setHours(0,0,0,0);
+  const iso=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+  const shift=(d,n)=>{const x=new Date(d);x.setDate(x.getDate()+n);return x;};
+  const wkStart=shift(today,-6),pwStart=shift(today,-13),pwEnd=shift(today,-7);
+  const exp=S.transactions.filter(t=>t.type==='expense');
+  const inR=(t,a,b)=>t.date>=iso(a)&&t.date<=iso(b);
+  const thisWk=exp.filter(t=>inR(t,wkStart,today));
+  const prevWk=exp.filter(t=>inR(t,pwStart,pwEnd));
+  const byCat=arr=>{const m={};arr.forEach(t=>m[t.cat]=(m[t.cat]||0)+t.amount);return m;};
+  const twc=byCat(thisWk),pwc=byCat(prevWk);
+  const twTotal=sum(thisWk),pwTotal=sum(prevWk);
+  const mo=iso(today).slice(0,7);
+  const dim=new Date(today.getFullYear(),today.getMonth()+1,0).getDate();
+  const dom=today.getDate();
+  const moTx=txOfMonth(mo);
+  const moExpCat=byCat(moTx.filter(t=>t.type==='expense'));
+  const items=[]; // sev: 0 alert, 1 warning, 2 tip, 3 win
+
+  S.categories.forEach(c=>{
+    if(!c.limit)return;
+    const spent=moExpCat[c.id]||0;
+    if(spent>c.limit){
+      items.push({sev:0,icon:'🚨',html:`<b>${c.name}</b> is ${fmtShort(spent-c.limit)} over its monthly limit. Freeze this category until next month.`});
+    }else if(spent>c.limit*.5&&dom<dim){
+      const proj=spent/dom*dim;
+      if(proj>c.limit*1.05){
+        const wkAllow=Math.max(0,c.limit-spent)/(dim-dom)*7;
+        items.push({sev:1,icon:'⚠️',html:`<b>${c.name}</b> is on pace to hit ${fmtShort(proj)} vs a ${fmtShort(c.limit)} limit. Keep next week under <b>${fmtShort(wkAllow)}</b> to stay safe.`});
+      }
+    }
+  });
+  Object.keys(twc).forEach(cat=>{
+    const a=twc[cat],b=pwc[cat]||0;
+    if(b>0&&a>b*1.5&&a-b>100000){
+      const c=S.categories.find(x=>x.id===cat);
+      items.push({sev:1,icon:'📈',html:`<b>${c?c.name:cat}</b> jumped ${Math.round((a/b-1)*100)}% vs last week (${fmtShort(b)} → ${fmtShort(a)}). Worth checking what drove it.`});
+    }
+  });
+  const income=sum(moTx.filter(t=>t.type==='income'));
+  const invested=sum(moTx.filter(t=>t.type==='invest'));
+  const expenseMo=sum(moTx.filter(t=>t.type==='expense'));
+  const savedTotal=invested+Math.max(0,income-expenseMo-invested);
+  const targetAmt=(S.settings.income||income)*S.settings.savePct/100;
+  if(targetAmt>0){
+    const expected=targetAmt*dom/dim;
+    if(savedTotal>=targetAmt)items.push({sev:3,icon:'🏆',html:`Monthly savings target already hit (${fmtShort(savedTotal)}). Any surplus this week compounds fastest in your IDX positions.`});
+    else if(savedTotal<expected*.7&&dom>5)items.push({sev:0,icon:'💸',html:`Savings pace is behind: ${fmtShort(savedTotal)} vs ~${fmtShort(expected)} expected by day ${dom}. Move money to savings <i>first</i> this week, then spend what's left.`});
+  }
+  if(S.invest.monthly>0&&dom>=15&&invested<S.invest.monthly)
+    items.push({sev:1,icon:'📊',html:`Invested ${fmtShort(invested)} of your ${fmtShort(S.invest.monthly)} monthly plan. Schedule the remaining ${fmtShort(S.invest.monthly-invested)} — DCA only works if you don't skip months.`});
+  if(pwTotal>0&&twTotal<pwTotal*.8)
+    items.push({sev:3,icon:'✅',html:`Spending down ${Math.round((1-twTotal/pwTotal)*100)}% vs last week (${fmtShort(pwTotal)} → ${fmtShort(twTotal)}). Keep that up.`});
+  if(!thisWk.length)
+    items.push({sev:2,icon:'✍️',html:`No expenses logged in the last 7 days. Log daily — insights and budget alerts get sharper with complete data.`});
+  if(dim-dom>0&&S.categories.length){
+    const remaining=S.categories.reduce((s,c)=>s+Math.max(0,(c.limit||0)-(moExpCat[c.id]||0)),0);
+    items.push({sev:2,icon:'🎯',html:`Safe total spend for the next 7 days: about <b>${fmtShort(remaining/(dim-dom)*7)}</b> to finish the month on budget.`});
+  }
+  items.sort((a,b)=>a.sev-b.sev);
+  const colors=['var(--red)','var(--amber)','var(--accent)','var(--green)'];
+  const wl=document.getElementById('insightsWeek');
+  if(wl)wl.textContent='— '+wkStart.toLocaleDateString('en-US',{day:'numeric',month:'short'})+' to '+today.toLocaleDateString('en-US',{day:'numeric',month:'short'});
+  el.innerHTML=items.length?items.map(i=>
+    `<div style="display:flex;gap:10px;padding:9px 0;border-bottom:1px solid var(--line);align-items:flex-start">
+     <span>${i.icon}</span><div style="font-size:.87rem;line-height:1.5;border-left:3px solid ${colors[i.sev]};padding-left:10px;flex:1">${i.html}</div></div>`).join(''):
+    '<div class="empty">All quiet — log more data to unlock insights.</div>';
+}
+
+/* ---------- goal simulator ---------- */
+const PROFILES=[
+  ['Conservative','RDPU / deposito',4.5,'var(--teal)'],
+  ['Balanced','Reksadana indeks + blue chips',8,'var(--accent)'],
+  ['Growth','IDX stocks (LQ45-heavy)',11,'var(--purple)']
+];
+function monthsToReach(P,PMT,annual,target){
+  const r=annual/100/12;let v=P;
+  if(v>=target)return 0;
+  if(PMT<=0&&r<=0)return null;
+  for(let m=1;m<=1200;m++){v=v*(1+r)+PMT;if(v>=target)return m;}
+  return null;
+}
+function requiredMonthly(P,annual,n,target){
+  const r=annual/100/12;
+  if(r===0)return Math.max(0,(target-P)/n);
+  const g=Math.pow(1+r,n);
+  return Math.max(0,(target-P*g)*r/(g-1));
+}
+function runSim(){
+  const income=parseIDR(document.getElementById('simIncome').value)||0;
+  const target=parseIDR(document.getElementById('simTarget').value);
+  const current=parseIDR(document.getElementById('simCurrent').value)||0;
+  const years=parseFloat(document.getElementById('simYears').value)||0;
+  const monthly=parseIDR(document.getElementById('simMonthly').value)||0;
+  const out=document.getElementById('simResults');
+  if(isNaN(target)||target<=0){out.innerHTML='<div class="empty">Enter a target amount first.</div>';return;}
+  if(!monthly&&!years){out.innerHTML='<div class="empty">Enter a monthly saving amount, a deadline, or both.</div>';return;}
+  const n=Math.round(years*12);
+  const recIdx=years&&years<2?0:years&&years<=5?1:2;
+  let html='<table><tr><th>Profile</th><th class="num">Return</th>'
+    +(monthly?'<th class="num">Time to goal</th>':'')
+    +(n?'<th class="num">Required /mo</th><th class="num">% of income</th>':'')+'</tr>';
+  PROFILES.forEach(([name,desc,ret,col],i)=>{
+    const rec=i===recIdx&&years>0;
+    html+=`<tr style="${rec?'background:rgba(79,142,247,.08)':''}"><td><b style="color:${col}">${name}</b>${rec?' ⭐':''}<br><span class="muted" style="font-size:.75rem">${desc}</span></td><td class="num">${ret}%/yr</td>`;
+    if(monthly){
+      const m=monthsToReach(current,monthly,ret,target);
+      html+=`<td class="num">${m===null?'>100 yrs':m===0?'✓ reached':m<12?m+' mo':(m/12).toFixed(1)+' yrs'}</td>`;
+    }
+    if(n){
+      const req=requiredMonthly(current,ret,n,target);
+      const pct=income>0?req/income*100:null;
+      html+=`<td class="num">${fmtShort(req)}</td><td class="num ${pct!==null&&pct>50?'red':pct!==null&&pct>35?'amber':'green'}">${pct===null?'—':Math.round(pct)+'%'}</td>`;
+    }
+    html+='</tr>';
+  });
+  html+='</table>';
+  const notes=[];
+  if(years>0){
+    const reasons=['short timelines can’t ride out stock volatility — capital safety beats returns here','medium horizons balance growth with time to recover from dips','long horizons let you ride IDX volatility for the highest expected compounding'];
+    notes.push(`⭐ For a ${years}-year horizon I'd use the <b>${PROFILES[recIdx][0]}</b> profile: ${reasons[recIdx]}.`);
+    const req=requiredMonthly(current,PROFILES[recIdx][2],n,target);
+    if(income>0){
+      const pct=req/income*100;
+      if(pct>50){
+        notes.push(`🚩 This goal needs <b>${fmtShort(req)}/mo</b> — ${Math.round(pct)}% of income. Two realistic fixes: extend the deadline, or raise income.`);
+        notes.push(`💡 Income ideas that suit a disciplined saver: benchmark your salary and negotiate (often +10–20%), freelance your professional skill 5–10 hrs/week, build IDX dividend income (~4–7%/yr yield reinvested), or turn a skill into a small product/service. Even an extra 2jt/mo invested at 8% grows to ~${fmtShort(2000000*((Math.pow(1+0.08/12,120)-1)/(0.08/12)))} in 10 years.`);
+      }else if(pct>35){
+        notes.push(`⚠️ Needs ${Math.round(pct)}% of income — doable for a strong saver, but the buffer is thin. A small side income or +6 months on the deadline would de-stress it.`);
+      }else{
+        notes.push(`✅ Comfortably feasible at ${Math.round(pct)}% of income. Automate the transfer on payday and it's done.`);
+      }
+    }
+  }else if(monthly){
+    notes.push('Tip: add a deadline to see the required monthly amount and my recommended risk profile.');
+  }
+  out.innerHTML=html+'<div style="margin-top:12px;font-size:.87rem;line-height:1.6">'+notes.map(t=>'<p style="margin-bottom:8px">'+t+'</p>').join('')+'</div>';
+}
+function prefillSim(){
+  const inc=document.getElementById('simIncome');
+  if(inc&&!inc.value&&S.settings.income)inc.value=S.settings.income;
+  const m=document.getElementById('simMonthly');
+  if(m&&!m.value&&S.settings.income)m.value=Math.round(S.settings.income*S.settings.savePct/100);
+}
+
+/* ---------- cloud sync (GitHub Gist) ---------- */
+const GIST_FILE='finance-tracker-sync.json';
+let syncTimer=null,syncState='';
+function setSync(msg,color){
+  syncState=msg;
+  const el=document.getElementById('syncStatus');
+  if(el){el.textContent=msg;el.style.color=color||'var(--muted)';}
+}
+function ghHeaders(tok){return{'Authorization':'Bearer '+(tok||(S.sync&&S.sync.token)||''),'Accept':'application/vnd.github+json','Content-Type':'application/json'};}
+function scheduleSyncPush(){
+  if(!S.sync||!S.sync.gistId)return;
+  clearTimeout(syncTimer);
+  setSync('Syncing…');
+  syncTimer=setTimeout(syncPush,2500);
+}
+async function syncPush(){
+  if(!S.sync||!S.sync.gistId)return;
+  try{
+    const blob=localStorage.getItem(ENC_KEY);
+    if(!blob)return;
+    const r=await fetch('https://api.github.com/gists/'+S.sync.gistId,{method:'PATCH',headers:ghHeaders(),
+      body:JSON.stringify({files:{[GIST_FILE]:{content:blob}}})});
+    if(!r.ok)throw 0;
+    setSync('✓ Synced '+new Date().toLocaleTimeString(),'var(--green)');
+  }catch(e){setSync('⚠️ Sync failed — check connection or token','var(--red)');}
+}
+async function syncPull(silent){
+  if(!S.sync||!S.sync.gistId||!sessionPin)return;
+  try{
+    setSync('Checking cloud…');
+    const r=await fetch('https://api.github.com/gists/'+S.sync.gistId,{headers:ghHeaders()});
+    if(!r.ok)throw 'net';
+    const g=await r.json();
+    if(!g.files||!g.files[GIST_FILE])throw 'net';
+    const remote=JSON.parse(g.files[GIST_FILE].content);
+    let local={};try{local=JSON.parse(localStorage.getItem(ENC_KEY))||{};}catch(e){}
+    if(remote.ct&&(remote.updatedAt||0)>(local.updatedAt||0)){
+      const key=await deriveKey(sessionPin,unb64(remote.salt));
+      const pt=await crypto.subtle.decrypt({name:'AES-GCM',iv:unb64(remote.iv)},key,unb64(remote.ct));
+      const mySync=S.sync;
+      normalizeState(JSON.parse(td.decode(pt)));
+      S.sync=S.sync||mySync;
+      cryptoKey=key;pendingSalt=unb64(remote.salt);
+      localStorage.setItem(ENC_KEY,JSON.stringify(remote));
+      render();
+      setSync('✓ Updated from cloud '+new Date().toLocaleTimeString(),'var(--green)');
+      if(!silent)toast('Latest data loaded from cloud ✓','var(--green)');
+    }else{
+      setSync('✓ Up to date','var(--green)');
+    }
+  }catch(e){
+    if(e&&e.name==='OperationError')setSync('⚠️ Cloud data was encrypted with a DIFFERENT PIN — use the same PIN on all devices','var(--red)');
+    else setSync('⚠️ Could not reach cloud','var(--red)');
+  }
+}
+async function connectSync(){
+  const tok=document.getElementById('ghToken').value.trim();
+  if(!tok){toast('Paste your GitHub token first','var(--red)');return;}
+  setSync('Connecting…');
+  try{
+    const r=await fetch('https://api.github.com/gists?per_page=100',{headers:ghHeaders(tok)});
+    if(!r.ok)throw 0;
+    const gists=await r.json();
+    const found=gists.find(g=>g.files&&g.files[GIST_FILE]);
+    if(found){
+      S.sync={token:tok,gistId:found.id};
+      const dr=await fetch('https://api.github.com/gists/'+found.id,{headers:ghHeaders(tok)});
+      const dg=await dr.json();
+      let remote=null;try{remote=JSON.parse(dg.files[GIST_FILE].content);}catch(e){}
+      const localEmpty=!S.transactions.length&&!S.goals.length&&!S.settings.income;
+      if(remote&&remote.ct&&(localEmpty||confirm('Existing cloud data found.\n\nOK = load CLOUD data onto this device (replaces local)\nCancel = keep THIS device\'s data and overwrite cloud'))){
+        const key=await deriveKey(sessionPin,unb64(remote.salt));
+        const pt=await crypto.subtle.decrypt({name:'AES-GCM',iv:unb64(remote.iv)},key,unb64(remote.ct));
+        const mySync=S.sync;
+        normalizeState(JSON.parse(td.decode(pt)));
+        S.sync=mySync;
+        cryptoKey=key;pendingSalt=unb64(remote.salt);
+        localStorage.setItem(ENC_KEY,JSON.stringify(remote));
+        render();
+        save(); // persist sync settings into adopted data (also pushes)
+      }else{
+        save(); // keep local, push it to cloud
+      }
+      renderSync();
+      setSync('✓ Sync enabled','var(--green)');
+    }else{
+      const blob=localStorage.getItem(ENC_KEY)||'{}';
+      const cr=await fetch('https://api.github.com/gists',{method:'POST',headers:ghHeaders(tok),
+        body:JSON.stringify({description:'Finance tracker — encrypted sync (contents are AES-256 ciphertext)',public:false,
+        files:{[GIST_FILE]:{content:blob}}})});
+      if(!cr.ok)throw 0;
+      const g=await cr.json();
+      S.sync={token:tok,gistId:g.id};
+      save();
+      renderSync();
+      setSync('✓ Sync enabled','var(--green)');
+    }
+    toast('Cloud sync connected ✓','var(--green)');
+  }catch(e){
+    if(e&&e.name==='OperationError'){delete S.sync;setSync('⚠️ Cloud data uses a DIFFERENT PIN — set the same PIN on both devices first','var(--red)');}
+    else setSync('⚠️ Invalid token or network error','var(--red)');
+  }
+}
+function disconnectSync(){
+  if(!confirm('Disconnect sync on this device? The cloud copy remains until you delete the gist on GitHub.'))return;
+  delete S.sync;save();renderSync();
+}
+function renderSync(){
+  const el=document.getElementById('syncUI');if(!el)return;
+  if(S.sync&&S.sync.gistId){
+    el.innerHTML=`<p class="muted" style="margin-bottom:8px">Connected — only encrypted data leaves this device. Changes push automatically a few seconds after you save.</p>
+      <p id="syncStatus" class="hint" style="margin-bottom:10px">${syncState}</p>
+      <div style="display:flex;gap:10px;flex-wrap:wrap">
+        <button class="btn sec" onclick="syncPull()">⟳ Pull latest</button>
+        <button class="btn sec" onclick="syncPush()">↑ Push now</button>
+        <button class="btn danger" onclick="disconnectSync()">Disconnect</button>
+      </div>`;
+  }else{
+    el.innerHTML=`<p class="muted" style="margin-bottom:10px">Sync encrypted data between desktop and iPhone through a private GitHub Gist. Use the SAME PIN on every device.</p>
+      <ol class="muted" style="font-size:.82rem;line-height:1.7;margin:0 0 12px 18px">
+        <li>Open <b>github.com/settings/tokens</b> → "Generate new token (classic)"</li>
+        <li>Name: finance-sync · Expiration: No expiration · tick ONLY the <b>gist</b> scope</li>
+        <li>Copy the token (starts with ghp_) and paste it below — repeat on each device with the same token</li>
+      </ol>
+      <div style="display:flex;gap:10px;flex-wrap:wrap">
+        <div class="f" style="flex:2;min-width:200px"><input id="ghToken" type="password" placeholder="ghp_… token" autocomplete="off"></div>
+        <button class="btn" onclick="connectSync()">Connect sync</button>
+      </div>
+      <p class="hint" style="margin-top:8px">The token is stored inside your encrypted data. It can only touch gists — nothing else on your GitHub.</p>`;
+  }
+}
+
+/* ---------- render all ---------- */
+function render(){
+  document.getElementById('monthLabel').textContent=monthName(curMonth);
+  renderDash();renderInsights();renderTx();renderBudget();renderInvest();renderGoals();renderSync();prefillSim();renderPresets();renderHoldings();renderYear();
+}
+function startApp(){
+  document.getElementById('txDate').value=new Date().toISOString().slice(0,10);
+  syncTxCats();
+  render();
+}
+initLock();
+</script>
+</body>
+</html>
