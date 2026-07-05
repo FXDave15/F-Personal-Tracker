@@ -127,6 +127,10 @@
   <div class="tab active" id="tab-dash">
     <div class="cards" id="dashCards"></div>
     <div class="panel">
+      <h2>🏦 Accounts <small>— live balances across your banks</small></h2>
+      <div id="acctDash" style="display:flex;align-items:center;gap:18px;flex-wrap:wrap"></div>
+    </div>
+    <div class="panel">
       <h2>🧠 Weekly insights <small id="insightsWeek"></small></h2>
       <div id="insights"></div>
     </div>
@@ -170,9 +174,11 @@
               <option value="expense">Expense</option>
               <option value="income">Income</option>
               <option value="invest">Investment</option>
+              <option value="transfer">Transfer between accounts</option>
             </select></div>
           <div class="f"><label>Date</label><input type="date" id="txDate" required></div>
-          <div class="f"><label>Category</label><select id="txCat"></select></div>
+          <div class="f"><label id="txAcctLbl">Account</label><select id="txAcct"></select></div>
+          <div class="f"><label id="txCatLbl">Category</label><select id="txCat"></select></div>
         </div>
         <div class="row">
           <div class="f"><label>Amount (IDR — supports 50rb, 1.5jt)</label><input id="txAmt" placeholder="e.g. 150000 or 150rb" required></div>
@@ -191,7 +197,9 @@
         <div class="f"><select id="txFilterType" onchange="renderTx()">
           <option value="all">All types</option><option value="expense">Expenses</option>
           <option value="income">Income</option><option value="invest">Investments</option>
+          <option value="transfer">Transfers</option>
         </select></div>
+        <div class="f"><select id="txFilterAcct" onchange="renderTx()"></select></div>
       </div>
       <div id="txList"></div>
     </div>
@@ -207,6 +215,16 @@
         <div style="align-self:flex-end"><button class="btn" onclick="saveSettings()">Save</button></div>
       </div>
       <p class="hint" id="planHint"></p>
+    </div>
+    <div class="panel">
+      <h2>🏦 Bank accounts</h2>
+      <div id="acctList"></div>
+      <div class="row" style="display:flex;gap:10px;margin-top:12px;flex-wrap:wrap">
+        <div class="f"><input id="newAcctName" placeholder="Account name, e.g. BCA"></div>
+        <div class="f"><input id="newAcctStart" placeholder="Starting balance, e.g. 5jt"></div>
+        <button class="btn sec" onclick="addAccount()">Add account</button>
+      </div>
+      <p class="hint">Starting balance = what's in that bank before your first logged transaction. Use the Transfer type in the Log tab to move money between banks — it won't count as income or expense.</p>
     </div>
     <div class="panel">
       <h2>Category limits <small>— strict monthly caps</small></h2>
@@ -372,7 +390,8 @@ const DEFAULTS={
   ],
   transactions:[],
   invest:{current:0,monthly:0,ret:9,goal:1000000000,alloc:{blue:40,div:20,fund:30,cash:10}},
-  goals:[]
+  goals:[],
+  accounts:[{id:'acc1',name:'Bank 1',start:0},{id:'acc2',name:'Bank 2',start:0}]
 };
 let S=structuredClone(DEFAULTS);
 
@@ -407,6 +426,8 @@ function normalizeState(d){
   S.categories=S.categories||structuredClone(DEFAULTS.categories);
   S.transactions=S.transactions||[];S.goals=S.goals||[];
   S.presets=S.presets||[];S.holdings=S.holdings||[];
+  S.accounts=(S.accounts&&S.accounts.length)?S.accounts:structuredClone(DEFAULTS.accounts);
+  S.transactions.forEach(t=>{if(!t.account)t.account=S.accounts[0].id;});
 }
 function loadPlain(){
   let d=null;try{d=JSON.parse(localStorage.getItem(KEY));}catch(e){}
@@ -534,19 +555,28 @@ function shiftMonth(d){
 function syncTxCats(){
   const type=document.getElementById('txType').value;
   const sel=document.getElementById('txCat');
-  if(type==='expense'){
+  const acctSel=document.getElementById('txAcct');
+  const acctOpts=S.accounts.map(a=>`<option value="${a.id}">${a.name}</option>`).join('');
+  if(acctSel&&acctSel.innerHTML!==acctOpts){const v=acctSel.value;acctSel.innerHTML=acctOpts;if(v)acctSel.value=v;}
+  const catLbl=document.getElementById('txCatLbl'),acctLbl=document.getElementById('txAcctLbl');
+  if(acctLbl)acctLbl.textContent=type==='transfer'?'From account':'Account';
+  if(catLbl)catLbl.textContent=type==='transfer'?'To account':'Category';
+  if(type==='transfer'){
+    sel.innerHTML=acctOpts;
+    if(S.accounts.length>1)sel.selectedIndex=1;
+  }else if(type==='expense'){
     sel.innerHTML=S.categories.map(c=>`<option value="${c.id}">${c.name}</option>`).join('');
-    sel.disabled=false;
   }else if(type==='income'){
     sel.innerHTML='<option value="salary">Salary</option><option value="bonus">Bonus</option><option value="dividend">Dividend</option><option value="other-income">Other</option>';
-    sel.disabled=false;
   }else{
     sel.innerHTML='<option value="idx-stock">IDX Stocks</option><option value="reksadana">Reksadana/ETF</option><option value="deposito">Deposito/RDPU</option><option value="other-invest">Other</option>';
-    sel.disabled=false;
   }
+  sel.disabled=false;
 }
-function addTxCore(type,date,cat,amt,note){
+function addTxCore(type,date,cat,amt,note,acct){
   if(!date||isNaN(amt)||amt<=0){toast('Enter a valid date and amount','var(--red)');return false;}
+  acct=acct||(S.accounts[0]&&S.accounts[0].id);
+  if(type==='transfer'&&cat===acct){toast('Choose two different accounts for a transfer','var(--red)');return false;}
   if(type==='expense'){
     const c=S.categories.find(x=>x.id===cat);
     if(c){
@@ -557,7 +587,7 @@ function addTxCore(type,date,cat,amt,note){
       }
     }
   }
-  S.transactions.push({id:Date.now()+Math.floor(Math.random()*1000),type,date,cat,amount:amt,note});
+  S.transactions.push({id:Date.now()+Math.floor(Math.random()*1000),type,date,cat,amount:amt,note,account:acct});
   if(type==='invest')S.invest.current+=amt;
   save();
   return true;
@@ -569,7 +599,8 @@ function addTx(e){
     document.getElementById('txDate').value,
     document.getElementById('txCat').value,
     parseIDR(document.getElementById('txAmt').value),
-    document.getElementById('txNote').value.trim());
+    document.getElementById('txNote').value.trim(),
+    document.getElementById('txAcct').value);
   if(ok){
     document.getElementById('txAmt').value='';document.getElementById('txNote').value='';
     toast('Transaction added ✓','var(--green)');
@@ -586,7 +617,7 @@ function savePreset(){
   const note=document.getElementById('txNote').value.trim();
   if(isNaN(amt)||amt<=0){toast('Fill in the amount (and optionally a note) first, then hit ☆ Preset','var(--red)');return;}
   const name=note||catName({type,cat});
-  S.presets.push({id:Date.now(),name,type,cat,amount:amt});
+  S.presets.push({id:Date.now(),name,type,cat,amount:amt,account:document.getElementById('txAcct').value});
   save();renderPresets();
   toast('Preset "'+name+'" saved ✓','var(--green)');
 }
@@ -594,7 +625,7 @@ function quickAdd(id){
   const p=S.presets.find(x=>x.id===id);if(!p)return;
   const today=new Date();
   const date=today.getFullYear()+'-'+String(today.getMonth()+1).padStart(2,'0')+'-'+String(today.getDate()).padStart(2,'0');
-  if(addTxCore(p.type,date,p.cat,p.amount,p.name)){
+  if(addTxCore(p.type,date,p.cat,p.amount,p.name,p.account)){
     toast(p.name+' — '+fmtShort(p.amount)+' logged ✓','var(--green)');
     render();
   }
@@ -617,15 +648,19 @@ function delTx(id){
   S.transactions=S.transactions.filter(x=>x.id!==id);
   save();render();
 }
+const acctName=id=>{const a=S.accounts.find(x=>x.id===id);return a?a.name:'?';};
 function catName(t){
+  if(t.type==='transfer')return acctName(t.account)+' → '+acctName(t.cat);
   if(t.type==='expense'){const c=S.categories.find(x=>x.id===t.cat);return c?c.name:t.cat;}
   return {'salary':'Salary','bonus':'Bonus','dividend':'Dividend','other-income':'Other','idx-stock':'IDX Stocks','reksadana':'Reksadana/ETF','deposito':'Deposito/RDPU','other-invest':'Other'}[t.cat]||t.cat;
 }
 function renderTx(){
   const q=((document.getElementById('txSearch')||{}).value||'').toLowerCase();
   const ft=((document.getElementById('txFilterType')||{}).value)||'all';
+  const fa=((document.getElementById('txFilterAcct')||{}).value)||'all';
   let list=txOfMonth(curMonth);
   if(ft!=='all')list=list.filter(t=>t.type===ft);
+  if(fa!=='all')list=list.filter(t=>t.account===fa||(t.type==='transfer'&&t.cat===fa));
   if(q)list=list.filter(t=>(t.note||'').toLowerCase().includes(q)||catName(t).toLowerCase().includes(q));
   list=list.sort((a,b)=>b.date.localeCompare(a.date)||b.id-a.id);
   document.getElementById('txListTitle').textContent='Transactions — '+monthName(curMonth)+' ('+list.length+')';
@@ -633,11 +668,81 @@ function renderTx(){
   if(!list.length){el.innerHTML='<div class="empty">No transactions this month yet.</div>';return;}
   el.innerHTML='<table><tr><th></th><th>Name</th><th>Date</th><th class="num">Amount</th><th></th></tr>'+
     list.map(t=>`<tr>
-      <td style="width:44px"><span class="ticon">${t.type==='income'?'💵':t.type==='invest'?'📊':'🛒'}</span></td>
-      <td><b>${catName(t)}</b><br><span class="muted" style="font-size:.75rem">${t.note||t.type}</span></td>
+      <td style="width:44px"><span class="ticon">${t.type==='income'?'💵':t.type==='invest'?'📊':t.type==='transfer'?'🔁':'🛒'}</span></td>
+      <td><b>${catName(t)}</b><br><span class="muted" style="font-size:.75rem">${t.type==='transfer'?(t.note||'transfer'):(t.note||t.type)+' · '+acctName(t.account)}</span></td>
       <td class="muted">${t.date.slice(8)}/${t.date.slice(5,7)}</td>
-      <td class="num" style="font-weight:700;color:${t.type==='income'?'var(--green)':t.type==='invest'?'var(--purple)':'var(--text)'}">${t.type==='income'?'+ ':'− '}${fmt(t.amount)}</td>
+      <td class="num" style="font-weight:700;color:${t.type==='income'?'var(--green)':t.type==='invest'?'var(--purple)':t.type==='transfer'?'var(--muted)':'var(--text)'}">${t.type==='income'?'+ ':t.type==='transfer'?'⇄ ':'− '}${fmt(t.amount)}</td>
       <td><button class="del" onclick="delTx(${t.id})">✕</button></td></tr>`).join('')+'</table>';
+}
+
+/* ---------- bank accounts ---------- */
+function acctBalance(id){
+  const a=S.accounts.find(x=>x.id===id);
+  let b=(a&&a.start)||0;
+  S.transactions.forEach(t=>{
+    if(t.type==='transfer'){
+      if(t.account===id)b-=t.amount;
+      if(t.cat===id)b+=t.amount;
+    }else if(t.account===id){
+      b+=t.type==='income'?t.amount:-t.amount;
+    }
+  });
+  return b;
+}
+function renderAcctDash(){
+  const el=document.getElementById('acctDash');if(!el)return;
+  const bals=S.accounts.map((a,i)=>({...a,bal:acctBalance(a.id),col:DONUT_COLORS[i%10]}));
+  const total=bals.reduce((s,a)=>s+a.bal,0);
+  const pos=bals.filter(a=>a.bal>0);
+  const posTotal=pos.reduce((s,a)=>s+a.bal,0);
+  let donut='';
+  if(posTotal>0){
+    let acc=0;
+    const stops=pos.map(a=>{const p1=acc/posTotal*100;acc+=a.bal;const p2=acc/posTotal*100;return `${a.col} ${p1}% ${p2}%`;}).join(',');
+    donut=`<div style="width:124px;height:124px;border-radius:50%;background:conic-gradient(${stops});position:relative;flex-shrink:0">
+      <div style="position:absolute;inset:25px;border-radius:50%;background:var(--card);display:flex;align-items:center;justify-content:center;flex-direction:column">
+      <span style="font-size:.6rem;color:var(--muted)">TOTAL</span><b style="font-size:.74rem">${fmtShort(total)}</b></div></div>`;
+  }
+  el.innerHTML=donut+`<div style="flex:1;display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;min-width:220px">`+
+    bals.map(a=>`<div class="card" style="border-left:5px solid ${a.col}">
+      <div class="lbl">${a.name}</div>
+      <div class="val ${a.bal<0?'red':''}">${fmt(a.bal)}</div>
+      <div class="muted" style="font-size:.72rem;margin-top:2px">${posTotal>0&&a.bal>0?Math.round(a.bal/posTotal*100)+'% of funds':a.bal<0?'⚠️ negative — check entries':''}</div>
+    </div>`).join('')+`</div>`;
+}
+function addAccount(){
+  const name=document.getElementById('newAcctName').value.trim();
+  const start=parseIDR(document.getElementById('newAcctStart').value)||0;
+  if(!name){toast('Enter an account name','var(--red)');return;}
+  S.accounts.push({id:'a'+Date.now(),name,start});
+  document.getElementById('newAcctName').value='';document.getElementById('newAcctStart').value='';
+  save();render();syncTxCats();
+}
+function updAccount(id,field,val){
+  const a=S.accounts.find(x=>x.id===id);if(!a)return;
+  if(field==='name'){const v=val.trim();if(v)a.name=v;}
+  else{const v=parseIDR(val);if(!isNaN(v))a.start=v;}
+  save();render();syncTxCats();
+}
+function delAccount(id){
+  if(S.accounts.length<=1){toast('You need at least one account','var(--red)');return;}
+  const used=S.transactions.some(t=>t.account===id||(t.type==='transfer'&&t.cat===id));
+  if(used){toast('This account has transactions — delete or reassign them first','var(--red)');return;}
+  if(!confirm('Remove this account?'))return;
+  S.accounts=S.accounts.filter(a=>a.id!==id);
+  save();render();syncTxCats();
+}
+function renderAccounts(){
+  const el=document.getElementById('acctList');if(!el)return;
+  el.innerHTML=S.accounts.map(a=>`
+    <div class="row" style="display:flex;gap:10px;align-items:center;margin-bottom:8px;flex-wrap:wrap">
+      <div class="f"><input value="${a.name}" onchange="updAccount('${a.id}','name',this.value)"></div>
+      <div class="f"><input value="${a.start}" onchange="updAccount('${a.id}','start',this.value)" title="Starting balance"></div>
+      <div style="min-width:120px;text-align:right;font-weight:700">${fmt(acctBalance(a.id))}</div>
+      <button class="del" onclick="delAccount('${a.id}')">✕</button>
+    </div>`).join('')+'<p class="hint">Columns: name · starting balance · current balance.</p>';
+  const f=document.getElementById('txFilterAcct');
+  if(f){const v=f.value;f.innerHTML='<option value="all">All accounts</option>'+S.accounts.map(a=>`<option value="${a.id}">${a.name}</option>`).join('');if(v)f.value=v;}
 }
 
 /* ---------- budget ---------- */
@@ -947,9 +1052,9 @@ function renderYear(){
 
 /* ---------- CSV export ---------- */
 function exportCSV(){
-  const rows=[['date','type','category','amount','note']];
+  const rows=[['date','type','account','category','amount','note']];
   S.transactions.slice().sort((a,b)=>a.date.localeCompare(b.date)).forEach(t=>
-    rows.push([t.date,t.type,catName(t),t.amount,(t.note||'')]));
+    rows.push([t.date,t.type,acctName(t.account),catName(t),t.amount,(t.note||'')]));
   const csv=rows.map(r=>r.map(c=>{c=String(c).replace(/"/g,'""');return /[",\n;]/.test(c)?'"'+c+'"':c;}).join(',')).join('\r\n');
   const blob=new Blob(['﻿'+csv],{type:'text/csv;charset=utf-8'});
   const a=document.createElement('a');
@@ -1302,7 +1407,7 @@ function renderSync(){
 /* ---------- render all ---------- */
 function render(){
   document.getElementById('monthLabel').textContent=monthName(curMonth);
-  renderDash();renderInsights();renderTx();renderBudget();renderInvest();renderGoals();renderSync();prefillSim();renderPresets();renderHoldings();renderYear();
+  renderAccounts();renderAcctDash();renderDash();renderInsights();renderTx();renderBudget();renderInvest();renderGoals();renderSync();prefillSim();renderPresets();renderHoldings();renderYear();
 }
 function startApp(){
   document.getElementById('txDate').value=new Date().toISOString().slice(0,10);
